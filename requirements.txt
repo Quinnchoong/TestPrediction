@@ -1,7 +1,6 @@
-streamlit
-numpy
-pandas
-scikit-learn
-matplotlib
-fpdf
-joblib
+streamlit>=1.27.0
+pandas>=2.0.0
+numpy>=1.24.0
+matplotlib>=3.7.0
+fpdf>=1.7.2
+scikit-learn>=1.2.0
