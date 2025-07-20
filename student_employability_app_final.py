@@ -168,8 +168,3 @@ with tab3:
 st.markdown("---")
 st.caption("© 2025 CHOONG MUH IN | Graduate Employability Prediction App | For research purposes only.")
 """
-
-with open("/mnt/data/student_employability_app_final.py", "w") as f:
-    f.write(combined_app_code)
-
-"/mnt/data/student_employability_app_final.py"
