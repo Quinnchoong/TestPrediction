@@ -1,6 +1,3 @@
-# Remove Unicode dash and fix the docstring properly to avoid syntax error
-
-final_clean_app_code_fixed = r'''
 # -*- coding: utf-8 -*-
 """student_employability_app_final.py - Final Clean Version"""
 
