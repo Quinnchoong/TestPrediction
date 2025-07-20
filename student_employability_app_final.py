@@ -1,21 +1,46 @@
+# Combine the best parts of both versions into a clean, final app
+
+combined_app_code = """
 # -*- coding: utf-8 -*-
-"""student_employability_app_final.py - Final Clean Version"""
+# student_employability_app_final.py - Final Combined Version
 
 import streamlit as st
 import pandas as pd
 import numpy as np
 import pickle
-from datetime import datetime
 import base64
 import matplotlib.pyplot as plt
 from fpdf import FPDF
+from PIL import Image
+
+# --- Streamlit App Setup ---
+st.set_page_config(page_title="🎓 Student Employability Predictor", layout="centered")
+
+# --- CSS: Light blue background & compact layout ---
+st.markdown(\"\"\"
+<style>
+.stApp { background-color: #e6f2ff; }
+html, body, [class*="css"] { font-size: 14px; }
+.block-container { padding-top: 1rem; padding-bottom: 1rem; }
+</style>
+\"\"\", unsafe_allow_html=True)
 
 # --- Load Model & Scaler ---
-with open("employability_predictor.pkl", "rb") as f:
-    model = pickle.load(f)
+@st.cache_resource
+def load_model():
+    try:
+        with open("employability_predictor.pkl", "rb") as f:
+            model = pickle.load(f)
+        with open("scaler.pkl", "rb") as f:
+            scaler = pickle.load(f)
+        return model, scaler
+    except FileNotFoundError:
+        return None, None
 
-with open("scaler.pkl", "rb") as f:
-    scaler = pickle.load(f)
+model, scaler = load_model()
+if model is None or scaler is None:
+    st.error("⚠️ Model or scaler file not found.")
+    st.stop()
 
 # --- Utility Functions ---
 def generate_pdf_report(data, result, confidence, proba):
@@ -40,102 +65,77 @@ def get_pdf_download_link(file_path):
     href = f'<a href="data:application/octet-stream;base64,{b64}" download="prediction_report.pdf">📄 Download PDF Report</a>'
     return href
 
-# --- Streamlit App Setup ---
-st.set_page_config(
-    page_title="Graduate Employability Prediction",
-    page_icon="🎓",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+# --- Header Image ---
+try:
+    image = Image.open("group-business-people-silhouette-businesspeople-abstract-background_656098-461.avif")
+    st.image(image, use_container_width=True)
+except:
+    pass
 
-st.sidebar.image(
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/UNESCO_logo.svg/2560px-UNESCO_logo.svg.png",
-    width=200
-)
-
-st.sidebar.title("About This App")
-st.sidebar.markdown("""
-This app predicts **graduate employability** based on academic and experiential attributes.
-Outputs: Prediction, confidence, feature insights, downloadable PDF report.
----
-Developed for MSc Capstone Project.
-""")
-st.sidebar.info("Version: Final | Last Updated: 2025-07-20")
-
-st.title("🎓 Advanced Graduate Employability Dashboard")
-st.subheader("Empowering HEIs with actionable, data-driven insights.")
+st.markdown("<h2 style='text-align: center;'>🎓 Student Employability Predictor — SVM Model</h2>", unsafe_allow_html=True)
+st.markdown("Fill in the input features to predict employability.")
 
 tab1, tab2, tab3 = st.tabs(["📋 Input Form", "📊 Feature Insights", "📄 Report"])
+
+feature_columns = [
+    'GENDER', 'GENERAL_APPEARANCE', 'GENERAL_POINT_AVERAGE',
+    'MANNER_OF_SPEAKING', 'PHYSICAL_CONDITION', 'MENTAL_ALERTNESS',
+    'SELF-CONFIDENCE', 'ABILITY_TO_PRESENT_IDEAS', 'COMMUNICATION_SKILLS',
+    'STUDENT_PERFORMANCE_RATING', 'NO_SKILLS', 'Year_of_Graduate'
+]
 
 # ---------------- Tab 1: Input Form ----------------
 with tab1:
     st.header("📋 Student Profile Input")
 
-    with st.form("input_form", clear_on_submit=False):
-        col1, col2, col3 = st.columns(3)
+    col1, col2, col3 = st.columns(3)
+    inputs = {}
 
-        with col1:
-            gender = st.selectbox("Gender (0=Female, 1=Male)", [0,1])
-            general_appearance = st.slider("General Appearance (1–5)", 1, 5, 3)
-            gpa = st.number_input("General Point Average (GPA)", 0.0, 4.0, 3.0)
+    with col1:
+        inputs['GENDER'] = st.radio("Gender", [0, 1], format_func=lambda x: "Male" if x==1 else "Female", index=1)
+        inputs['GENERAL_APPEARANCE'] = st.slider("Appearance (1-5)", 1, 5, 3)
+        inputs['GENERAL_POINT_AVERAGE'] = st.number_input("GPA (0.0-4.0)", 0.0, 4.0, 3.0, 0.01)
+        inputs['MANNER_OF_SPEAKING'] = st.slider("Speaking (1-5)", 1, 5, 3)
 
-        with col2:
-            manner_of_speaking = st.slider("Manner of Speaking (1–5)", 1, 5, 3)
-            physical_condition = st.slider("Physical Condition (1–5)", 1, 5, 3)
-            mental_alertness = st.slider("Mental Alertness (1–5)", 1, 5, 3)
+    with col2:
+        inputs['PHYSICAL_CONDITION'] = st.slider("Physical (1-5)", 1, 5, 3)
+        inputs['MENTAL_ALERTNESS'] = st.slider("Alertness (1-5)", 1, 5, 3)
+        inputs['SELF-CONFIDENCE'] = st.slider("Confidence (1-5)", 1, 5, 3)
+        inputs['ABILITY_TO_PRESENT_IDEAS'] = st.slider("Ideas (1-5)", 1, 5, 3)
 
-        with col3:
-            self_confidence = st.slider("Self-Confidence (1–5)", 1, 5, 3)
-            ability_to_present_ideas = st.slider("Ability to Present Ideas (1–5)", 1, 5, 3)
-            communication_skills = st.slider("Communication Skills (1–5)", 1, 5, 3)
-            student_performance_rating = st.slider("Student Performance Rating (1–5)", 1, 5, 3)
-            no_skills = st.slider("Number of Skills (integer)", 0, 10, 0)
-            year_of_graduate = st.selectbox("Year of Graduation", [2020,2021,2022,2023,2024])
+    with col3:
+        inputs['COMMUNICATION_SKILLS'] = st.slider("Communication (1-5)", 1, 5, 3)
+        inputs['STUDENT_PERFORMANCE_RATING'] = st.slider("Performance (1-5)", 1, 5, 3)
+        inputs['NO_SKILLS'] = st.radio("Has No Skills", [0,1], format_func=lambda x: "No" if x==0 else "Yes", index=0)
+        inputs['Year_of_Graduate'] = st.number_input("Graduation Year", 2019, 2025, 2022)
 
-        submitted = st.form_submit_button("🔮 Predict")
+    input_df = pd.DataFrame([inputs])[feature_columns]
 
-    if submitted:
-        feature_names = [
-            'GENDER', 'GENERAL_APPEARANCE', 'GENERAL_POINT_AVERAGE',
-            'MANNER_OF_SPEAKING', 'PHYSICAL_CONDITION', 'MENTAL_ALERTNESS',
-            'SELF-CONFIDENCE', 'ABILITY_TO_PRESENT_IDEAS', 'COMMUNICATION_SKILLS',
-            'STUDENT_PERFORMANCE_RATING', 'NO_SKILLS', 'Year_of_Graduate'
-        ]
+    if st.button("🔮 Predict"):
+        input_scaled = scaler.transform(input_df)
+        prediction = model.predict(input_scaled)[0]
+        proba = model.predict_proba(input_scaled)[0]
 
-        input_data = np.array([[gender, general_appearance, gpa,
-                                manner_of_speaking, physical_condition, mental_alertness,
-                                self_confidence, ability_to_present_ideas, communication_skills,
-                                student_performance_rating, no_skills, year_of_graduate]])
+        st.write("🎓 The system predicts if the student is employable or less employable.")
 
-        if input_data.shape[1] != len(feature_names):
-            st.error(f"Input shape mismatch: expected {len(feature_names)}, got {input_data.shape[1]}")
+        if prediction == 1:
+            result_text = "✅ The student is predicted to be **Employable**"
+            result_color = "green"
         else:
-            input_scaled = scaler.transform(input_data)
-            proba = model.predict_proba(input_scaled)[0]
-            prediction = model.predict(input_scaled)[0]
+            result_text = "⚠️ The student is predicted to be **Less Employable**"
+            result_color = "red"
 
-            st.write("🎓 The system predicts if the student is employable or less employable.")
+        confidence = proba[prediction] * 100
 
-            if prediction == 1:
-                result_text = "✅ The student is predicted to be **Employable**"
-                result_color = "green"
-            else:
-                result_text = "⚠️ The student is predicted to be **Less Employable**"
-                result_color = "red"
+        st.session_state['data'] = dict(zip(feature_columns, input_df.iloc[0]))
+        st.session_state['result'] = result_text
+        st.session_state['confidence'] = confidence
+        st.session_state['proba'] = proba
 
-            confidence = proba[prediction] * 100
-
-            st.session_state['data'] = dict(zip(feature_names, input_data[0]))
-            st.session_state['result'] = result_text
-            st.session_state['confidence'] = confidence
-            st.session_state['proba'] = proba
-
-            st.markdown("---")
-            st.markdown(f"<h3 style='color:{result_color}'>{result_text}</h3>", unsafe_allow_html=True)
-
-            st.write(f"📊 **Probabilities:**")
-            st.write(f"Probability of being Employable: {proba[1]*100:.2f}%")
-            st.write(f"Probability of being Less Employable: {proba[0]*100:.2f}%")
+        st.markdown("---")
+        st.markdown(f"<h3 style='color:{result_color}'>{result_text}</h3>", unsafe_allow_html=True)
+        st.info(f"Probability of being Employable: {proba[1]*100:.2f}%")
+        st.info(f"Probability of being Less Employable: {proba[0]*100:.2f}%")
 
 # ---------------- Tab 2: Feature Insights ----------------
 with tab2:
@@ -166,5 +166,10 @@ with tab3:
         st.info("Please submit a prediction first on the 📋 Input Form tab.")
 
 st.markdown("---")
-st.caption("© 2025 Your Name / Your University | Graduate Employability Prediction App | For research purposes only.")
-'''
+st.caption("© 2025 CHOONG MUH IN | Graduate Employability Prediction App | For research purposes only.")
+"""
+
+with open("/mnt/data/student_employability_app_final.py", "w") as f:
+    f.write(combined_app_code)
+
+"/mnt/data/student_employability_app_final.py"
