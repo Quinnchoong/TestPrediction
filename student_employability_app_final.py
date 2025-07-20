@@ -1,6 +1,8 @@
+# Save the fully corrected and improved Streamlit app to a .py file
 
+fixed_app_code = """
 # -*- coding: utf-8 -*-
-"""student_employability_app_final.py — Final Fixed Version"""
+\"\"\"student_employability_app_final.py — Final Fixed Version\"\"\"
 
 import streamlit as st
 import pandas as pd
@@ -55,12 +57,12 @@ st.sidebar.image(
 )
 
 st.sidebar.title("About This App")
-st.sidebar.markdown("""
+st.sidebar.markdown(\"\"\"
 This app predicts **graduate employability** based on academic and experiential attributes.
 Outputs: Prediction, confidence, feature insights, downloadable PDF report.
 ---
 Developed for MSc Capstone Project.
-""")
+\"\"\")
 st.sidebar.info("Version: Final | Last Updated: 2025-07-20")
 
 st.title("🎓 Advanced Graduate Employability Dashboard")
@@ -133,8 +135,8 @@ with tab1:
             st.markdown(f"<h3 style='color:{result_color}'>{result_text}</h3>", unsafe_allow_html=True)
 
             st.write(f"📊 **Probabilities:**")
-            st.write(f"Probability of being Employable: {proba[1]*100:.2f}%")
-            st.write(f"Probability of being Less Employable: {proba[0]*100:.2f}%")
+            st.write(f"- Employable: `{proba[1]*100:.2f}%`")
+            st.write(f"- Less Employable: `{proba[0]*100:.2f}%`")
 
 # ---------------- Tab 2: Feature Insights ----------------
 with tab2:
@@ -166,3 +168,10 @@ with tab3:
 
 st.markdown("---")
 st.caption("© 2025 Your Name / Your University | Graduate Employability Prediction App | For research purposes only.")
+"""
+
+with open("/mnt/data/student_employability_app_final.py", "w") as f:
+    f.write(fixed_app_code)
+
+"/mnt/data/student_employability_app_final.py"
+
